@@ -18,6 +18,9 @@ HoG buildHoG(cv::Mat grad_x, cv::Mat grad_y) {
     int width = grad_x.cols;
 
     HoG hog;
+    for (int i = 0; i < NBINS; ++i) {
+        hog.push_back(0);
+    }
 
     // TODO
     // 1) увеличьте размер вектора hog до NBINS (ведь внутри это просто обычный вектор вещественных чисел)
@@ -28,6 +31,49 @@ HoG buildHoG(cv::Mat grad_x, cv::Mat grad_y) {
     // рекомендую воспользоваться atan2(dy, dx) - он возвращает радианы - https://en.cppreference.com/w/cpp/numeric/math/atan2
     // прочитайте по ссылке на документацию (в прошлой строке) - какой диапазон значений у угла-результата atan2 может быть?
     // 5) внесите его силу как голос за соответствующую его углу корзину
+//    for (int j = 0; j < height; ++j) {
+//        for (int i = 0; i < width; ++i) {
+//            float dx = grad_x.at<float>(j, i);
+//            float dy = grad_y.at<float>(j, i);
+//            float strength = sqrt(dx * dx + dy * dy);
+//
+//            if (strength < 10) // пропускайте слабые градиенты, это нужно чтобы игнорировать артефакты сжатия в jpeg (например в line01.jpg пиксели не идеально белые/черные, есть небольшие отклонения)
+//                continue;
+//
+//            // TODO рассчитайте в какую корзину нужно внести голос
+//            int bin = -1;
+//
+//            double ang = atan2(dy,dx);
+//            double ang0 = 0;
+//            double ang1 = CV_PI/4;
+//            for (int k = 0; k < 8; ++k) {
+//                if ((ang <= ang1)&&(ang >= ang0)){
+//                    bin = k;
+//                    break;
+//                }
+//                ang0+=CV_PI/4;
+//                ang1+=CV_PI/4;
+//            }
+//
+//            rassert(bin >= 0, 3842934728039);
+//            rassert(bin < NBINS, 34729357289040);
+//            hog[bin]++;
+//        }
+//    }
+double sumStrength = 0;
+for (int j = 0; j < height; ++j) {
+    for (int i = 0; i < width; ++i) {
+        float dx = grad_x.at<float>(j, i);
+        float dy = grad_y.at<float>(j, i);
+        float strength = sqrt(dx * dx + dy * dy);
+
+        if (strength < 10) // пропускайте слабые градиенты, это нужно чтобы игнорировать артефакты сжатия в jpeg (например в line01.jpg пиксели не идеально белые/черные, есть небольшие отклонения)
+            continue;
+
+        // TODO рассчитайте в какую корзину нужно внести голос
+        sumStrength+=strength;
+    }
+}
     for (int j = 0; j < height; ++j) {
         for (int i = 0; i < width; ++i) {
             float dx = grad_x.at<float>(j, i);
@@ -40,9 +86,21 @@ HoG buildHoG(cv::Mat grad_x, cv::Mat grad_y) {
             // TODO рассчитайте в какую корзину нужно внести голос
             int bin = -1;
 
+            double ang = atan2(dy,dx);
+            double ang0 = 0;
+            double ang1 = M_PI/4;
+            for (int k = 0; k < NBINS; ++k) {
+                if ((ang < ang1)&&(ang >= ang0)){
+                    bin = k;
+                    break;
+                }
+                ang0+=M_PI/4;
+                ang1+=M_PI/4;
+            }
+
             rassert(bin >= 0, 3842934728039);
             rassert(bin < NBINS, 34729357289040);
-            hog[bin] += strength;
+            hog[bin] += strength/sumStrength;
         }
     }
 
@@ -75,11 +133,13 @@ HoG buildHoG(cv::Mat originalImg) {
 // HoG[22.5=0%, 67.5=78%, 112.5=21%, 157.5=0%, 202.5=0%, 247.5=0%, 292.5=0%, 337.5=0%]
 std::ostream &operator<<(std::ostream &os, const HoG &hog) {
     rassert(hog.size() == NBINS, 234728497230016);
-
+    double angleInDegrees = 22.5;
     // TODO
     os << "HoG[";
     for (int bin = 0; bin < NBINS; ++bin) {
-//        os << angleInDegrees << "=" << percentage << "%, ";
+        double percentage = hog[bin];
+        os << angleInDegrees << "=" << percentage << "%, ";
+        angleInDegrees+=360/NBINS;
     }
     os << "]";
     return os;
@@ -99,5 +159,9 @@ double distance(HoG a, HoG b) {
     // подсказка: на контрастной картинке все градиенты гораздо сильнее, а на блеклой картинке все градиенты гораздо слабее, но пропорции между градиентами (распроцентовка) не изменны!
 
     double res = 0.0;
+    for (int i = 0; i < NBINS; ++i) {
+        res = pow2(a[i] - b[i]) + res;
+    }
+    res = sqrt(res);
     return res;
 }
