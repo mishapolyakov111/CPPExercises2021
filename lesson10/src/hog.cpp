@@ -37,17 +37,23 @@ HoG buildHoG(cv::Mat grad_x, cv::Mat grad_y) {
             float dx = grad_x.at<float>(j, i);
             float dy = grad_y.at<float>(j, i);
             float strength = sqrt(dx * dx + dy * dy);
-            double angle = atan2(dy, dy);
+            double angle = atan2(dy, dx);
 
 
             if (strength < 10) // пропускайте слабые градиенты, это нужно чтобы игнорировать артефакты сжатия в jpeg (например в line01.jpg пиксели не идеально белые/черные, есть небольшие отклонения)
                 continue;
 
             // TODO рассчитайте в какую корзину нужно внести голос
-            int bin = -1;
-            angle = angle/M_2_PI;
-            bin = round(angle*NBINS)+4;
-            hog[bin] += strength;
+            int bin = 0;
+            if (angle >= 0 && angle < M_PI_4) hog[0] += strength;
+            if (angle >= M_PI_4 && angle < 2*M_PI_4) hog[1] += strength;
+            if (angle >= 2*M_PI_4 && angle < 3*M_PI_4) hog[2] += strength;
+            if (angle >= 3*M_PI_4 && angle < 4*M_PI_4) hog[3] += strength;
+            if (angle >= -4*M_PI_4 && angle < -3*M_PI_4) hog[4] += strength;
+            if (angle >= -3*M_PI_4 && angle < -2*M_PI_4) hog[5] += strength;
+            if (angle >= -2*M_PI_4 && angle < -M_PI_4) hog[6] += strength;
+            if (angle >= -M_PI_4 && angle < 0) hog[7] += strength;
+
             sumStrength += strength;
 
             rassert(bin >= 0, 3842934728039);
