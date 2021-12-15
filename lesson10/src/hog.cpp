@@ -37,7 +37,7 @@ HoG buildHoG(cv::Mat grad_x, cv::Mat grad_y) {
             float dx = grad_x.at<float>(j, i);
             float dy = grad_y.at<float>(j, i);
             float strength = sqrt(dx * dx + dy * dy);
-            double angle = atan2(dy, dx);
+            double angle = atan2(-dy, dx);
 
 
             if (strength < 10) // пропускайте слабые градиенты, это нужно чтобы игнорировать артефакты сжатия в jpeg (например в line01.jpg пиксели не идеально белые/черные, есть небольшие отклонения)

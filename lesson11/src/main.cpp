@@ -65,7 +65,7 @@ void test(std::string name, std::string k) {
     cv::imwrite(out_path + "/02_binary_thresholding.jpg", binary);
 
     // TODO 02 выполните адаптивный бинарный трешолдинг картинки, прочитайте документацию по cv::adaptiveThreshold
-    cv::adaptiveThreshold(img, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 9, 10);
+    cv::adaptiveThreshold(img, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY_INV, 9, 10);
     cv::imwrite(out_path + "/03_adaptive_thresholding.jpg", binary);
 
     // TODO 03 чтобы буквы не разваливались на кусочки - морфологическое расширение (эрозия)
@@ -75,25 +75,25 @@ void test(std::string name, std::string k) {
 
     // TODO 03 заодно давайте посмотрим что делает морфологическое сужение (диляция)
     cv::Mat binary_dilated;
-    cv::dilate(binary, binary_dilated, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2)));
+    cv::dilate(binary_eroded, binary_dilated, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)));
     cv::imwrite(out_path + "/05_dilate.jpg", binary_dilated);
 
-    cv::erode(binary_dilated, binary_eroded, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(4,4)));
-    cv::imwrite(out_path + "/04_erode&dilate.jpg", binary_eroded);
+   //cv::erode(binary_dilated, binary_eroded, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(4,4)));
+   //cv::imwrite(out_path + "/04_erode&dilate.jpg", binary_eroded);
 
     // TODO 04 дальше работаем с картинкой после морфологичесокго рашсирения или морфологического сжатия - на ваш выбор, подумайте и посмотрите на картинки
-    binary = binary_eroded;
+    binary = binary_dilated;
 
     // TODO 05
     std::vector<std::vector<cv::Point>> contoursPoints; // по сути это вектор, где каждый элемент - это одна связная компонента-контур,
                                                         // а что такое компонента-контур? это вектор из точек (из пикселей)
-    cv::findContours(binary, contoursPoints, cv::RETR_LIST, cv::CHAIN_APPROX_NONE); // TODO подумайте, какие нужны два последних параметра? прочитайте документацию, после реализации отрисовки контура - поиграйте с этими параметрами чтобы посмотреть как меняется результат
+    cv::findContours(binary, contoursPoints, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE); // TODO подумайте, какие нужны два последних параметра? прочитайте документацию, после реализации отрисовки контура - поиграйте с этими параметрами чтобы посмотреть как меняется результат
     std::cout << "Contours: " << contoursPoints.size() << std::endl;
     cv::Mat imageWithContoursPoints = drawContours(img.rows, img.cols, contoursPoints); // TODO 06 реализуйте функцию которая покажет вам как выглядят найденные контура
     cv::imwrite(out_path + "/06_contours_points.jpg", imageWithContoursPoints);
 
-    std::vector<std::vector<cv::Point>> contoursPoints2;
-    cv::findContours(binary, contoursPoints2, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+    //std::vector<std::vector<cv::Point>> contoursPoints2;
+    //cv::findContours(binary, contoursPoints2, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
     // TODO:
     // Обратите внимание на кромку картинки - она всё победила, т.к. черное - это ноль - пустота, а белое - это 255 - сам объект интереса
     // как перевернуть ситуацию чтобы периметр не был засчитан как контур?
@@ -101,9 +101,9 @@ void test(std::string name, std::string k) {
     // Посмотрите в документации у функций cv::threshold и cv::adaptiveThreshold
     // про некоего cv::THRESH_BINARY_INV, чем он отличается от cv::THRESH_BINARY?
     // Посмотрите как изменились все картинки.
-    std::cout << "Contours2: " << contoursPoints2.size() << std::endl;
-    cv::Mat imageWithContoursPoints2 = drawContours(img.rows, img.cols, contoursPoints2);
-    cv::imwrite(out_path + "/07_contours_points2.jpg", imageWithContoursPoints2);
+//    std::cout << "Contours2: " << contoursPoints2.size() << std::endl;
+//    cv::Mat imageWithContoursPoints2 = drawContours(img.rows, img.cols, contoursPoints2);
+//    cv::imwrite(out_path + "/07_contours_points2.jpg", imageWithContoursPoints2);
 
     // TODO 06 наконец давайте посмотрим какие буковки нашлись - обрамим их прямоугольниками
     cv::Mat imgWithBoxes = original.clone();
