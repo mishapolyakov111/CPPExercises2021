@@ -31,7 +31,7 @@ std::vector<cv::Point2f> Line::generatePoints(int n,
     //  - диапазон x в котором создаются точки
     for (int i = 0; i < 5; ++i) {
         // это правило генерации случайных чисел - указание какие мы хотим координаты x - равномерно распределенные в диапазоне от fromX  до toX
-        std::uniform_real_distribution<> xDistribution(2.0, 5.0);
+        std::uniform_real_distribution<> xDistribution(fromX, toX);
 
         double x = xDistribution(randomGenerator);
 
