@@ -11,7 +11,7 @@ double Line::getYFromX(double x)
     rassert(b != 0.0, 2734832748932790061); // случай вертикальной прямой не рассматривается для простоты
 
     // TODO 01
-    double y = 1.0;
+    double y = -(a*x+c)/b;
 
     return y;
 }
@@ -36,7 +36,7 @@ std::vector<cv::Point2f> Line::generatePoints(int n,
         double x = xDistribution(randomGenerator);
 
         // найдем идеальную координату y для данной координаты x:
-        double idealY = x; // TODO 01 воспользуйтесь методом getYFromX (сначала его надо доделать)
+        double idealY = getYFromX(x); // TODO 01 воспользуйтесь методом getYFromX (сначала его надо доделать)
 
         // указание какую мы хотим координату y - распределенную около idealY в соответствии с распределением Гаусса (т.н. нормальное распределение)
         std::normal_distribution<> yDistribution(idealY, gaussianNoiseSigma);
@@ -88,7 +88,7 @@ void plotPoints(cv::Mat &img, std::vector<cv::Point2f> points, double scale, cv:
 
     for (int i = 0; i < points.size(); ++i) {
         // TODO 02 и обратите внимание что делает scale (он указывает масштаб графика)
-        cv::circle(img, points[i] * scale, 5, cv::Scalar(255, 255, 255), 2);
+        cv::circle(img, points[i] * scale, 5, color, 2);
     }
 }
 
@@ -99,7 +99,7 @@ void Line::plot(cv::Mat &img, double scale, cv::Scalar color)
     rassert(img.type() == CV_8UC3, 34237849200055);
 
     // TODO 03 реализуйте отрисовку прямой (воспользуйтесь getYFromX и cv::line(img, cv::Point(...), cv::Point(...), color)), будьте осторожны и не забудьте учесть scale!
-    // cv::line(img, cv::Point(...), cv::Point(...), color);
+    cv::line(img, cv::Point(0,getYFromX(0))*scale, cv::Point((img.cols-1)*scale,getYFromX(img.cols-1))*scale, color);
 }
 
 Line fitLineFromTwoPoints(cv::Point2f a, cv::Point2f b)
@@ -107,13 +107,42 @@ Line fitLineFromTwoPoints(cv::Point2f a, cv::Point2f b)
     rassert(a.x != b.x, 23892813901800104); // для упрощения можно считать что у нас не бывает вертикальной прямой
 
     // TODO 04 реализуйте построение прямой по двум точкам
-    return Line(0.0, -1.0, 2.0);
+    double  a0 = -(b.y-a.y)/(b.x-a.x);
+    double c0 = -a.y-a0*a.x;
+    return Line(a0, 1.0, c0);
 }
 
 Line fitLineFromNPoints(std::vector<cv::Point2f> points)
 {
     // TODO 05 реализуйте построение прямой по многим точкам (такое чтобы прямая как можно лучше учитывала все точки)
-    return Line(0.0, -1.0, 2.0);
+    double sumx1 = 0;
+    double sumy1 = 0;
+    double averagex1 = 0;
+    double averagey1 = 0;
+    double sumx2 = 0;
+    double sumy2 = 0;
+    double averagex2 = 0;
+    double averagey2 = 0;
+    double k1 = 0;
+    double k2 = 0;
+    for (int i = 0; i < points.size(); ++i) {
+        if (points[i].y < 734/100){
+            sumx1+=points[i].x;
+            sumy1+=points[i].y;
+            k1++;
+        } else{
+            sumx2+=points[i].x;
+            sumy2+=points[i].y;
+            k2++;
+        }
+    }
+    averagex1 = sumx1/k1;
+    averagey1 = sumy1/k1;
+    averagex2 = sumx2/k2;
+    averagey2 = sumy2/k2;
+    double a0 = -(averagey1-averagey2)/(averagex1-averagex2);
+    double c0 = -averagey1-a0*averagex1;
+    return Line(a0, 1.0, c0);
 }
 
 Line fitLineFromNNoisyPoints(std::vector<cv::Point2f> points)
