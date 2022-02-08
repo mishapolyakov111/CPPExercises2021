@@ -50,7 +50,8 @@ void test1() {
     std::cout << "Detecting SIFT keypoints and describing them (computing their descriptors)..." << std::endl;
     detector->detectAndCompute(img0, cv::noArray(), keypoints0, descriptors0);
     detector->detectAndCompute(img1, cv::noArray(), keypoints1, descriptors1);
-    std::cout << "SIFT keypoints detected and described: " << keypoints0.size() << " and " << keypoints1.size() << std::endl; // TODO
+    std::cout << "SIFT keypoints detected and described: " << keypoints0.size() << " and " << keypoints1.size()
+              << std::endl; // TODO
 
     {
         // Давайте нарисуем на картинке где эти точки были обнаружены для визуализации
@@ -66,29 +67,37 @@ void test1() {
     std::vector<std::vector<cv::DMatch>> matches01;
     std::cout << "Matching " << keypoints0.size() << " points with " << keypoints1.size() << "..." << std::endl; // TODO
     cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
-    matcher->knnMatch(descriptors0, descriptors1, matches01, 2); // k: 2 - указывает что мы ищем ДВЕ ближайшие точки, а не ОДНУ САМУЮ БЛИЖАЙШУЮ
+    matcher->knnMatch(descriptors0, descriptors1, matches01,
+                      2); // k: 2 - указывает что мы ищем ДВЕ ближайшие точки, а не ОДНУ САМУЮ БЛИЖАЙШУЮ
     std::cout << "matching done" << std::endl;
     // т.к. мы для каждой точки keypoints0 ищем ближайшую из keypoints1, то сопоставлений найдено столько же сколько точек в keypoints0:
     rassert(keypoints0.size() == matches01.size(), 234728972980049);
     for (int i = 0; i < matches01.size(); ++i) {
         rassert(matches01[i].size() == 2, 3427890347902051);
-        rassert(matches01[i][0].queryIdx == i, 237812974128941); // queryIdx - это индекс ключевой точки в первом векторе точек, т.к. мы для всех точек keypoints0
-        rassert(matches01[i][1].queryIdx == i, 237812974128942); // ищем ближайшую в keypoints1, queryIdx == i, т.е. равен индексу очередной точки keypoints0
+        rassert(matches01[i][0].queryIdx == i,
+                237812974128941); // queryIdx - это индекс ключевой точки в первом векторе точек, т.к. мы для всех точек keypoints0
+        rassert(matches01[i][1].queryIdx == i,
+                237812974128942); // ищем ближайшую в keypoints1, queryIdx == i, т.е. равен индексу очередной точки keypoints0
 
-        rassert(matches01[i][0].trainIdx < keypoints1.size(), 237812974128943); // trainIdx - это индекс точки в keypoints1 самой похожей на keypoints0[i]
-        rassert(matches01[i][1].trainIdx < keypoints1.size(), 237812974128943); // а этот trainIdx - это индекс точки в keypoints1 ВТОРОЙ по похожести на keypoints0[i]
+        rassert(matches01[i][0].trainIdx < keypoints1.size(),
+                237812974128943); // trainIdx - это индекс точки в keypoints1 самой похожей на keypoints0[i]
+        rassert(matches01[i][1].trainIdx < keypoints1.size(),
+                237812974128943); // а этот trainIdx - это индекс точки в keypoints1 ВТОРОЙ по похожести на keypoints0[i]
 
-        rassert(matches01[i][0].distance <= matches01[i][1].distance, 328493778); // давайте явно проверим что расстояние для этой второй точки - не меньше чем для первой точки
+        rassert(matches01[i][0].distance <= matches01[i][1].distance,
+                328493778); // давайте явно проверим что расстояние для этой второй точки - не меньше чем для первой точки
     }
 
     // TODO: исследуйте минимальное/медианное/максимальное расстояние в найденных сопоставлениях
     {
-//        std::vector<double> distances;
-//        for (int i = 0; i < matches01.size(); ++i) {
-//            distances.push_back( TODO );
-//        }
-//        std::sort( TODO ); // GOOGLE: "cpp how to sort vector"
-//        std::cout << "matches01 distances min/median/max: " << distances[ TODO ] << "/" << distances[ TODO ] << "/" << distances[ TODO ] << std::endl;
+        std::vector<double> distances;
+        for (int i = 0; i < matches01.size(); ++i) {
+            distances.push_back(matches01[i][0].distance);
+            distances.push_back(matches01[i][1].distance);
+        }
+        std::sort(distances.begin(), distances.end()); // GOOGLE: "cpp how to sort vector"
+        std::cout << "matches01 distances min/median/max: " << distances[0] << "/"
+                  << distances[(distances.size() - 1) / 2] << "/" << distances[distances.size() - 1] << std::endl;
     }
     for (int k = 0; k < 2; ++k) {
         std::vector<cv::DMatch> matchesK;
@@ -105,21 +114,39 @@ void test1() {
     std::vector<std::vector<cv::DMatch>> matches10;
     std::cout << "Matching " << keypoints1.size() << " points with " << keypoints0.size() << "..." << std::endl;
     // TODO сделайте все то же самое что и выше (можете прямо скопипастить) просто аккуратно поменяйте все 0 и 1 наоборот
+    cv::Ptr<cv::DescriptorMatcher> matcher1 = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+    matcher1->knnMatch(descriptors1, descriptors0, matches10,2); // k: 2 - указывает что мы ищем ДВЕ ближайшие точки, а не ОДНУ САМУЮ БЛИЖАЙШУЮ
     for (int i = 0; i < matches10.size(); ++i) {
         rassert(matches10[i].size() == 2, 3427890347902051);
-        // TODO
+        rassert(matches10[i][0].queryIdx == i, 237812974128941); // queryIdx - это индекс ключевой точки в первом векторе точек, т.к. мы для всех точек keypoints0
+        rassert(matches10[i][1].queryIdx == i, 237812974128942); // ищем ближайшую в keypoints1, queryIdx == i, т.е. равен индексу очередной точки keypoints0
+
+        rassert(matches10[i][0].trainIdx < keypoints0.size(), 237812974128943); // trainIdx - это индекс точки в keypoints1 самой похожей на keypoints0[i]
+        rassert(matches10[i][1].trainIdx < keypoints0.size(), 237812974128943); // а этот trainIdx - это индекс точки в keypoints1 ВТОРОЙ по похожести на keypoints0[i]
+
+        rassert(matches10[i][0].distance <= matches10[i][1].distance, 328493778); // давайте явно проверим что расстояние для этой второй точки - не меньше чем для первой точки
     }
     {
         std::vector<double> distances;
         for (int i = 0; i < matches10.size(); ++i) {
-            // TODO
+            distances.push_back(matches10[i][0].distance);
+            distances.push_back(matches10[i][1].distance);
         }
-        // TODO
+        std::sort(distances.begin(), distances.end()); // GOOGLE: "cpp how to sort vector"
+        std::cout << "matches10 distances min/median/max: " << distances[0] << "/"
+                  << distances[(distances.size() - 1) / 2] << "/" << distances[distances.size() - 1] << std::endl;
     }
     for (int k = 0; k < 2; ++k) {
-//        TODO
-//        cv::imwrite(results + "03matches10_k" + std::to_string(k) + ".jpg", imgWithMatches);
+        std::vector<cv::DMatch> matchesK;
+        for (int i = 0; i < matches10.size(); ++i) {
+            matchesK.push_back(matches10[i][k]);
+        }
+        // давайте взглянем как выглядят сопоставления между точками (k - указывает на какие сопоставления мы сейчас смотрим, на ближайшие, или на вторые по близости)
+        cv::Mat imgWithMatches;
+        cv::drawMatches(img1, keypoints1, img0, keypoints0, matchesK, imgWithMatches);
+        cv::imwrite(results + "03matches10_k" + std::to_string(k) + ".jpg", imgWithMatches);
     }
+
 
     // Теперь давайте попробуем убрать ошибочные сопоставления
     std::cout << "Filtering matches..." << std::endl;
@@ -130,7 +157,8 @@ void test1() {
         cv::DMatch match = matches01[i][0];
         rassert(match.queryIdx == i, 234782749278097); // и вновь - queryIdx это откуда точки (поэтому всегда == i)
         int j = match.trainIdx; // и trainIdx - это какая точка из второго массива точек оказалась к нам (к queryIdx из первого массива точек) ближайшей
-        rassert(j < keypoints1.size(), 38472957238099); // поэтому явно проверяем что индекс не вышел за пределы второго массива точек
+        rassert(j < keypoints1.size(),
+                38472957238099); // поэтому явно проверяем что индекс не вышел за пределы второго массива точек
 
         points0.push_back(keypoints0[i].pt);
         points1.push_back(keypoints1[j].pt);
@@ -138,26 +166,28 @@ void test1() {
         bool isOk = true;
 
         // TODO реализуйте фильтрацию на базе "достаточно ли похож дескриптор?" - как можно было бы подобрать порог? вспомните про вывод min/median/max раньше
-//        if (match.distance > ???) {
+//        if (match.distance > 350) {
 //            isOk = false;
 //        }
 
-        // TODO добавьте K-ratio тест (K=0.7), т.е. проверьте правда ли самая похожая точка сильно ближе к нашей точки (всмысле расстояния между дескрипторами) чем вторая по похожести?
-//        cv::DMatch match2 = TODO;
-//        if (match.distance > TODO) {
-//            isOk = false;
-//        }
+//        // TODO добавьте K-ratio тест (K=0.7), т.е. проверьте правда ли самая похожая точка сильно ближе к нашей точки (всмысле расстояния между дескрипторами) чем вторая по похожести?
+        cv::DMatch match2 = matches01[i][1];
+        if (match.distance > match2.distance*0.7) {
+            isOk = false;
+        }
 
         // TODO добавьте left-right check, т.е. проверку правда ли если для точки А самой похожей оказалась точка Б, то вероятно при обратном сопоставлении и у точки Б - ближайшей является точка А
-//        cv::DMatch match01 = match;
-//        cv::DMatch match10 = matches10[TODO][TODO];
-//        if (TODO) {
-//            isOk = false;
-//        }
+        cv::DMatch match01 = match;
+        cv::DMatch match10 = matches10[j][0];
+        if (match01.distance != match10.distance) {
+            isOk = false;
+        }
 
         // TODO: визуализация в 04goodMatches01.jpg покажет вам какие сопоставления остаются, какой из этих методов фильтрации оказался лучше всего?
         // TODO: попробуйте оставить каждый из них закомменьтировав два других, какой самый крутой?
+        //Самый крутой k-ratio
         // TODO: попробуйте решить какую комбинацию этих методов вам хотелось бы использовать в результате?
+        // k-ratio и left-right
         // TODO: !!!ОБЯЗАТЕЛЬНО!!! ЗАПИШИТЕ СЮДА ВВИДЕ КОММЕНТАРИЯ СВОИ ОТВЕТЫ НА ЭТИ ВОПРОСЫ И СВОИ ВЫВОДЫ!!!
 
         if (isOk) {
@@ -227,7 +257,8 @@ void test1() {
     cv::imwrite(results + "06img1.jpg", img1); // сохраняем вторую картинку
 
     cv::Mat img0to1;
-    cv::warpPerspective(img0, img0to1, H01, img1.size()); // преобразуем первую картинку соответственно матрице преобразования
+    cv::warpPerspective(img0, img0to1, H01,
+                        img1.size()); // преобразуем первую картинку соответственно матрице преобразования
     cv::imwrite(results + "07img0to1.jpg", img0to1); // TODO проверьте что она почти совпала со второй картинкой
 
 
