@@ -258,16 +258,21 @@ void test1() {
 
     cv::Mat H10 = H01.inv(); // у матрицы есть обратная матрица - находим ее, какое преобразование она делает?
     cv::Mat img1to0;
-//    cv::warpPerspective(TODO TODO TODO); // TODO преобразуйте вторую картинку в пространство первой картинки
-//    cv::imwrite(results + "09img1to0.jpg", img1to0); // TODO проверьте что она правильно наложилась на первую картинку
+    cv::warpPerspective(img1, img1to0, H10, img0.size()); // TODO преобразуйте вторую картинку в пространство первой картинки
+    cv::imwrite(results + "09img1to0.jpg", img1to0); // TODO проверьте что она правильно наложилась на первую картинку
 
-//    img1to0 = img0.clone(); // давайте теперь вторую картинку нарисуем не просто в пространстве первой картинки - но поверх нее!
-//    cv::warpPerspective(img1, img1to0, H10, img1to0.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
-//    cv::imwrite(results + "10img0with1to0.jpg", img1to0);
+    img1to0 = img0.clone(); // давайте теперь вторую картинку нарисуем не просто в пространстве первой картинки - но поверх нее!
+    cv::warpPerspective(img1, img1to0, H10, img1to0.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
+    cv::imwrite(results + "10img0with1to0.jpg", img1to0);
 
-//    img1to0 = img0.clone();
-//    cv::warpPerspective(TODO); // сделайте то же самое что и в предыдущей визуализации но вместо второй картинки - наложите картинку с несквиком
-//    cv::imwrite(results + "11img0withNesquik.jpg", img1to0);
+    img1to0 = img0.clone();
+    cv::Mat imgN = cv::imread(path + "box1_nesquik.png");
+    cv::warpPerspective(imgN, img1to0, H10, img0.size()); // сделайте то же самое что и в предыдущей визуализации но вместо второй картинки - наложите картинку с несквиком
+    cv::imwrite(results + "11img0withNesquik.jpg", img1to0);
+
+    img1to0 = img0.clone(); 
+    cv::warpPerspective(imgN, img1to0, H10, img1to0.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
+    cv::imwrite(results + "12img0withNesquik.jpg", img1to0);
 }
 
 void test2() {
