@@ -270,7 +270,7 @@ void test1() {
     cv::warpPerspective(imgN, img1to0, H10, img0.size()); // сделайте то же самое что и в предыдущей визуализации но вместо второй картинки - наложите картинку с несквиком
     cv::imwrite(results + "11img0withNesquik.jpg", img1to0);
 
-    img1to0 = img0.clone(); 
+    img1to0 = img0.clone();
     cv::warpPerspective(imgN, img1to0, H10, img1to0.size(), cv::INTER_LINEAR, cv::BORDER_TRANSPARENT);
     cv::imwrite(results + "12img0withNesquik.jpg", img1to0);
 }
