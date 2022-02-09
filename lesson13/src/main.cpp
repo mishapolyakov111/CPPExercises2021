@@ -83,12 +83,14 @@ void test1() {
 
     // TODO: исследуйте минимальное/медианное/максимальное расстояние в найденных сопоставлениях
     {
-//        std::vector<double> distances;
-//        for (int i = 0; i < matches01.size(); ++i) {
-//            distances.push_back( TODO );
-//        }
-//        std::sort( TODO ); // GOOGLE: "cpp how to sort vector"
-//        std::cout << "matches01 distances min/median/max: " << distances[ TODO ] << "/" << distances[ TODO ] << "/" << distances[ TODO ] << std::endl;
+        std::vector<double> distances;
+        for (int i = 0; i < matches01.size(); ++i) {
+            distances.push_back(matches01[i][0].distance);
+            distances.push_back(matches01[i][1].distance);
+        }
+          std::sort(distances.begin(), distances.end()); // GOOGLE: "cpp how to sort vector"
+          std::cout << "matches01 distances min/median/max: " << distances[0] << "/"
+                  << distances[(distances.size() - 1) / 2] << "/" << distances[distances.size() - 1] << std::endl;
     }
     for (int k = 0; k < 2; ++k) {
         std::vector<cv::DMatch> matchesK;
@@ -105,20 +107,37 @@ void test1() {
     std::vector<std::vector<cv::DMatch>> matches10;
     std::cout << "Matching " << keypoints1.size() << " points with " << keypoints0.size() << "..." << std::endl;
     // TODO сделайте все то же самое что и выше (можете прямо скопипастить) просто аккуратно поменяйте все 0 и 1 наоборот
+    cv::Ptr<cv::DescriptorMatcher> matcher1 = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+    matcher1->knnMatch(descriptors1, descriptors0, matches10,2); // k: 2 - указывает что мы ищем ДВЕ ближайшие точки, а не ОДНУ САМУЮ БЛИЖАЙШУЮ
     for (int i = 0; i < matches10.size(); ++i) {
         rassert(matches10[i].size() == 2, 3427890347902051);
-        // TODO
+        rassert(matches10[i][0].queryIdx == i, 237812974128941); // queryIdx - это индекс ключевой точки в первом векторе точек, т.к. мы для всех точек keypoints0
+        rassert(matches10[i][1].queryIdx == i, 237812974128942); // ищем ближайшую в keypoints1, queryIdx == i, т.е. равен индексу очередной точки keypoints0
+
+        rassert(matches10[i][0].trainIdx < keypoints0.size(), 237812974128943); // trainIdx - это индекс точки в keypoints1 самой похожей на keypoints0[i]
+        rassert(matches10[i][1].trainIdx < keypoints0.size(), 237812974128943); // а этот trainIdx - это индекс точки в keypoints1 ВТОРОЙ по похожести на keypoints0[i]
+
+        rassert(matches10[i][0].distance <= matches10[i][1].distance, 328493778); // давайте явно проверим что расстояние для этой второй точки - не меньше чем для первой точки
     }
     {
-        std::vector<double> distances;
+        std::vector<double> distances1;
         for (int i = 0; i < matches10.size(); ++i) {
-            // TODO
+            distances1.push_back(matches10[i][0].distance);
+            distances1.push_back(matches10[i][1].distance);
         }
-        // TODO
+        std::sort(distances1.begin(), distances1.end()); // GOOGLE: "cpp how to sort vector"
+        std::cout << "matches01 distances min/median/max: " << distances1[0] << "/"
+                  << distances1[(distances1.size() - 1) / 2] << "/" << distances1[distances1.size() - 1] << std::endl;
     }
     for (int k = 0; k < 2; ++k) {
-//        TODO
-//        cv::imwrite(results + "03matches10_k" + std::to_string(k) + ".jpg", imgWithMatches);
+        std::vector<cv::DMatch> matchesK;
+        for (int i = 0; i < matches10.size(); ++i) {
+            matchesK.push_back(matches10[i][k]);
+        }
+        // давайте взглянем как выглядят сопоставления между точками (k - указывает на какие сопоставления мы сейчас смотрим, на ближайшие, или на вторые по близости)
+        cv::Mat imgWithMatches;
+        cv::drawMatches(img1, keypoints1, img0, keypoints0, matchesK, imgWithMatches);
+        cv::imwrite(results + "03matches10_k" + std::to_string(k) + ".jpg", imgWithMatches);
     }
 
     // Теперь давайте попробуем убрать ошибочные сопоставления
@@ -138,26 +157,29 @@ void test1() {
         bool isOk = true;
 
         // TODO реализуйте фильтрацию на базе "достаточно ли похож дескриптор?" - как можно было бы подобрать порог? вспомните про вывод min/median/max раньше
-//        if (match.distance > ???) {
-//            isOk = false;
-//        }
+        if (match.distance > 350) {
+            isOk = false;
+        }
 
         // TODO добавьте K-ratio тест (K=0.7), т.е. проверьте правда ли самая похожая точка сильно ближе к нашей точки (всмысле расстояния между дескрипторами) чем вторая по похожести?
-//        cv::DMatch match2 = TODO;
-//        if (match.distance > TODO) {
-//            isOk = false;
-//        }
+        cv::DMatch match2 = matches01[i][1];
+        if (match.distance > 0.7*match2.distance) {
+            isOk = false;
+        }
 
         // TODO добавьте left-right check, т.е. проверку правда ли если для точки А самой похожей оказалась точка Б, то вероятно при обратном сопоставлении и у точки Б - ближайшей является точка А
-//        cv::DMatch match01 = match;
-//        cv::DMatch match10 = matches10[TODO][TODO];
-//        if (TODO) {
-//            isOk = false;
-//        }
+        cv::DMatch match01 = match;
+        cv::DMatch match10 = matches10[j][0];
+        if (match01.distance != match10.distance)  {
+            isOk = false;
+        }
 
         // TODO: визуализация в 04goodMatches01.jpg покажет вам какие сопоставления остаются, какой из этих методов фильтрации оказался лучше всего?
         // TODO: попробуйте оставить каждый из них закомменьтировав два других, какой самый крутой?
+        // медиана не делает почти ничего, left - right check в отдельности тоже, а вот к-ратио в отдельности самый крутой
         // TODO: попробуйте решить какую комбинацию этих методов вам хотелось бы использовать в результате?
+        // лучше всего работает k-ratio и затем лево-право чек, получается всего 70/75 инлайеров
+        // можно уменьшить k до 0,45 и тогда будет стопроцентное соответсвтвие (40/40)
         // TODO: !!!ОБЯЗАТЕЛЬНО!!! ЗАПИШИТЕ СЮДА ВВИДЕ КОММЕНТАРИЯ СВОИ ОТВЕТЫ НА ЭТИ ВОПРОСЫ И СВОИ ВЫВОДЫ!!!
 
         if (isOk) {
