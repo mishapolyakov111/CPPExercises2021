@@ -60,19 +60,19 @@ void run() {
     std::vector<int> distances(nvertices, INF);
     // TODO ...
 
-//    while (true) {
-//
-//    }
+    while (true) {
 
-//    if (...) {
-//        ...
-//        for (...) {
-//            std::cout << (path[i] + 1) << " ";
-//        }
-//        std::cout << std::endl;
-//    } else {
-//        std::cout << -1 << std::endl;
-//    }
+    }
+
+    if (...) {
+        ...
+        for (...) {
+            std::cout << (path[i] + 1) << " ";
+        }
+        std::cout << std::endl;
+    } else {
+        std::cout << -1 << std::endl;
+    }
 }
 
 int main() {
