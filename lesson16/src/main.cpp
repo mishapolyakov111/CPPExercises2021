@@ -138,19 +138,23 @@ void run(std::string caseName) {
     cv::Mat panoDiff(pano_rows, pano_cols, CV_8UC3, cv::Scalar(0, 0, 0));
     // TODO 2 вам надо заполнить panoDiff картинку так чтобы было четко ясно где pano0 картинка (объявлена выше) и pano1 картинка отличаются сильно, а где - слабо:
     // сравните в этих двух картинках пиксели по одинаковым координатам (т.е. мы сверяем картинки) и покрасьте соответствующий пиксель panoDiff по этой логике:
-    for (int i = 0; i < pano_cols; ++i) {
-        for (int j = 0; j < pano_rows; ++j) {
-            if (!isPixelEmpty(pano0.at<cv::Vec3b>(i,j)) && !isPixelEmpty(pano1.at<cv::Vec3b>(i,j))) {
+    for (int i = 0; i < pano_rows; ++i) {
+        for (int j = 0; j < pano_cols; ++j) {
+            if (!isPixelEmpty(pano0.at<cv::Vec3b>(i, j)) && !isPixelEmpty(pano1.at<cv::Vec3b>(i, j))) {
                 cv::Vec3b color1;
                 color1[0] = abs(pano0.at<cv::Vec3b>(i, j)[0] - pano1.at<cv::Vec3b>(i, j)[0]);
                 color1[1] = abs(pano0.at<cv::Vec3b>(i, j)[1] - pano1.at<cv::Vec3b>(i, j)[1]);
                 color1[2] = abs(pano0.at<cv::Vec3b>(i, j)[2] - pano1.at<cv::Vec3b>(i, j)[2]);
-                panoDiff.at<cv::Vec3b>(i,j) = color1;
+                panoDiff.at<cv::Vec3b>(i, j) = color1;
+            } else {
+                if (isPixelEmpty(pano0.at<cv::Vec3b>(i, j)) && isPixelEmpty(pano1.at<cv::Vec3b>(i, j))){
+                    panoDiff.at<cv::Vec3b>(j, i) = cv::Vec3b(0, 0, 0);
+                }else{
+                    panoDiff.at<cv::Vec3b>(j, i) = cv::Vec3b(254, 254, 254);
+                }
             }
         }
     }
-
-
     // - если оба пикселя пустые - проверяйте это через isPixelEmpty(color) (т.е. цвета черные) - результат тоже пусть черный
     // - если ровно один их пикселей пустой - результат пусть идеально белый
     // - иначе пусть результатом будет оттенок серого - пусть он тем светлее, чем больше разница между цветами пикселей
