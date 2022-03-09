@@ -14,8 +14,7 @@ struct Edge {
     int u, v; // номера вершин которые это ребро соединяет
     int w; // длина ребра (т.е. насколько длинный путь предстоит преодолеть переходя по этому ребру между вершинами)
 
-    Edge(int u, int v, int w) : u(u), v(v), w(w)
-    {}
+    Edge(int u, int v, int w) : u(u), v(v), w(w) {}
 };
 
 // Эта биективная функция по координате пикселя (строчка и столбик) + размерам картинки = выдает номер вершины
@@ -30,8 +29,8 @@ int encodeVertex(int row, int column, int nrows, int ncolumns) {
 cv::Point2i decodeVertex(int vertexId, int nrows, int ncolumns) {
 
     // TODO: придумайте как найти номер строки и столбика пикселю по номеру вершины (просто поймите предыдущую функцию и эта функция не будет казаться сложной)
-    int row = -1;
-    int column = -1;
+    int row = vertexId / ncolumns;
+    int column = vertexId % ncolumns;
 
     // сверим что функция симметрично сработала:
     rassert(encodeVertex(row, column, nrows, ncolumns) == vertexId, 34782974923035);
@@ -47,7 +46,7 @@ void run(int mazeNumber) {
     rassert(maze.type() == CV_8UC3, 3447928472389020);
     std::cout << "Maze resolution: " << maze.cols << "x" << maze.rows << std::endl;
 
-    int nvertices = 0; // TODO
+    int nvertices = maze.cols * maze.rows; // TODO
 
     std::vector<std::vector<Edge>> edges_by_vertex(nvertices);
     for (int j = 0; j < maze.rows; ++j) {
@@ -68,7 +67,8 @@ void run(int mazeNumber) {
     } else if (mazeNumber == 4) {
         start = encodeVertex(154, 312, maze.rows, maze.cols);
         finish = encodeVertex(477, 312, maze.rows, maze.cols);
-    } else if (mazeNumber == 5) { // Лабиринт в большом разрешении, добровольный (на случай если вы реализовали быструю Дейкстру с приоритетной очередью)
+    } else if (mazeNumber ==
+               5) { // Лабиринт в большом разрешении, добровольный (на случай если вы реализовали быструю Дейкстру с приоритетной очередью)
         start = encodeVertex(1200, 1200, maze.rows, maze.cols);
         finish = encodeVertex(1200, 1200, maze.rows, maze.cols);
     } else {
