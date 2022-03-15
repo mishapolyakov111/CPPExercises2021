@@ -30,8 +30,8 @@ int encodeVertex(int row, int column, int nrows, int ncolumns) {
 cv::Point2i decodeVertex(int vertexId, int nrows, int ncolumns) {
 
     // TODO: придумайте как найти номер строки и столбика пикселю по номеру вершины (просто поймите предыдущую функцию и эта функция не будет казаться сложной)
-    int row = -1;
-    int column = -1;
+    int row = vertexId % ncolumns;
+    int column = vertexId / ncolumns;
 
     // сверим что функция симметрично сработала:
     rassert(encodeVertex(row, column, nrows, ncolumns) == vertexId, 34782974923035);
@@ -47,7 +47,7 @@ void run(int mazeNumber) {
     rassert(maze.type() == CV_8UC3, 3447928472389020);
     std::cout << "Maze resolution: " << maze.cols << "x" << maze.rows << std::endl;
 
-    int nvertices = 0; // TODO
+    int nvertices = maze.cols * maze.rows; // TODO
 
     std::vector<std::vector<Edge>> edges_by_vertex(nvertices);
     for (int j = 0; j < maze.rows; ++j) {
@@ -57,6 +57,7 @@ void run(int mazeNumber) {
             unsigned char green = color[1];
             unsigned char red = color[2];
 
+            edges_by_vertex[j][i].w = blue + green + red;
             // TODO добавьте соотвтетсвующие этому пикселю ребра
         }
     }
@@ -81,6 +82,41 @@ void run(int mazeNumber) {
 
     std::vector<int> distances(nvertices, INF);
     // TODO СКОПИРУЙТЕ СЮДА ДЕЙКСТРУ ИЗ ПРЕДЫДУЩЕГО ИСХОДНИКА
+
+    distances[start] = 0;
+    std::vector<bool> used(nvertices, false);
+    std::vector<int> father(nvertices, -1);
+
+    while (!used[finish]) {
+        int n = -1;
+
+        for(int i = 0; i < nvertices; i++){
+            if(!used[i] && (distances[i] < INF)) n = i;
+        }
+
+        if(n == -1) break;
+
+        used[n] = true;
+
+        for(auto edge : edges_by_vertex[n]){
+            if (distances[edge.v] > distances[n] + edge.w){
+                distances[edge.v] = distances[n] + edge.w;
+                father[edge.v] = n;
+            }
+        }
+    }
+
+    if (distances[finish] != INF) {
+        std::vector<int> path;
+        int place = finish;
+        while(place != -1){
+            path.push_back(place);
+            place = father[place];
+        }
+        for (int i = path.size()-1; i >= 0; i--) {
+            std::cout << (path[i] + 1) << " ";
+        }
+    }
 
     // TODO в момент когда вершина становится обработанной - красьте ее на картинке window в зеленый цвет и показывайте картинку:
     //    cv::Point2i p = decodeVertex(the_chosen_one, maze.rows, maze.cols);
