@@ -30,8 +30,8 @@ int encodeVertex(int row, int column, int nrows, int ncolumns) {
 cv::Point2i decodeVertex(int vertexId, int nrows, int ncolumns) {
 
     // TODO: придумайте как найти номер строки и столбика пикселю по номеру вершины (просто поймите предыдущую функцию и эта функция не будет казаться сложной)
-    int row = vertexId % ncolumns;
-    int column = vertexId / ncolumns;
+    int row = vertexId / ncolumns;
+    int column = vertexId % ncolumns;
 
     // сверим что функция симметрично сработала:
     rassert(encodeVertex(row, column, nrows, ncolumns) == vertexId, 34782974923035);
@@ -50,14 +50,22 @@ void run(int mazeNumber) {
     int nvertices = maze.cols * maze.rows; // TODO
 
     std::vector<std::vector<Edge>> edges_by_vertex(nvertices);
-    for (int j = 0; j < maze.rows; ++j) {
-        for (int i = 0; i < maze.cols; ++i) {
+    for (int j = 0; j < maze.rows-1; ++j) {
+        for (int i = 0; i < maze.cols-1; ++i) {
             cv::Vec3b color = maze.at<cv::Vec3b>(j, i);
             unsigned char blue = color[0];
             unsigned char green = color[1];
             unsigned char red = color[2];
 
-            edges_by_vertex[j][i].w = blue + green + red;
+            int v = encodeVertex(j, i, maze.rows, maze.cols);
+            int u1 =  encodeVertex(j+1, i, maze.rows, maze.cols);
+            int u2 =  encodeVertex(j, i+1, maze.rows, maze.cols);
+            int w = blue + green + red;
+            Edge edge1 = Edge(v, u1, w);
+            Edge edge2 = Edge(v, u2, w);
+            edges_by_vertex[v].push_back(edge1);
+            edges_by_vertex[v].push_back(edge2);
+
             // TODO добавьте соотвтетсвующие этому пикселю ребра
         }
     }
@@ -97,6 +105,11 @@ void run(int mazeNumber) {
         if(n == -1) break;
 
         used[n] = true;
+        int y = n / maze.rows;
+        int x = n % maze.cols;
+        window.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 255, 0);
+        cv::imshow("Maze", window);
+        cv::waitKey(1);
 
         for(auto edge : edges_by_vertex[n]){
             if (distances[edge.v] > distances[n] + edge.w){
