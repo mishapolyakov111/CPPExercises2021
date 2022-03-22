@@ -42,7 +42,8 @@ cv::Point2i decodeVertex(int vertexId, int nrows, int ncolumns) {
 }
 
 void run(int mazeNumber) {
-    cv::Mat maze = cv::imread("lesson15/data/mazesImages/maze" + std::to_string(mazeNumber) + ".png");
+    //cv::Mat maze = cv::imread("lesson15/data/mazesImages/maze" + std::to_string(mazeNumber) + ".png");
+    cv::Mat maze = cv::imread("lesson15/data/mazesImages/maze1.png");
     rassert(!maze.empty(), 324783479230019);
     rassert(maze.type() == CV_8UC3, 3447928472389020);
     std::cout << "Maze resolution: " << maze.cols << "x" << maze.rows << std::endl;
@@ -50,21 +51,28 @@ void run(int mazeNumber) {
     int nvertices = maze.cols * maze.rows; // TODO
 
     std::vector<std::vector<Edge>> edges_by_vertex(nvertices);
-    for (int j = 0; j < maze.rows-1; ++j) {
-        for (int i = 0; i < maze.cols-1; ++i) {
+    for (int j = 1; j < maze.rows-1; ++j) {
+        for (int i = 1; i < maze.cols-1; ++i) {
             cv::Vec3b color = maze.at<cv::Vec3b>(j, i);
+
             unsigned char blue = color[0];
             unsigned char green = color[1];
             unsigned char red = color[2];
 
             int v = encodeVertex(j, i, maze.rows, maze.cols);
             int u1 =  encodeVertex(j+1, i, maze.rows, maze.cols);
+            int u3 =  encodeVertex(j-1, i, maze.rows, maze.cols);
             int u2 =  encodeVertex(j, i+1, maze.rows, maze.cols);
-            int w = blue + green + red;
+            int u4 =  encodeVertex(j, i-1, maze.rows, maze.cols);
+            int w = blue + green + red +1;
             Edge edge1 = Edge(v, u1, w);
             Edge edge2 = Edge(v, u2, w);
+            Edge edge3 = Edge(v, u3, w);
+            Edge edge4 = Edge(v, u4, w);
             edges_by_vertex[v].push_back(edge1);
             edges_by_vertex[v].push_back(edge2);
+            edges_by_vertex[v].push_back(edge3);
+            edges_by_vertex[v].push_back(edge4);
 
             // TODO добавьте соотвтетсвующие этому пикселю ребра
         }
@@ -92,6 +100,7 @@ void run(int mazeNumber) {
     // TODO СКОПИРУЙТЕ СЮДА ДЕЙКСТРУ ИЗ ПРЕДЫДУЩЕГО ИСХОДНИКА
 
     distances[start] = 0;
+    int mindistance = 0;
     std::vector<bool> used(nvertices, false);
     std::vector<int> father(nvertices, -1);
 
@@ -99,7 +108,7 @@ void run(int mazeNumber) {
         int n = -1;
 
         for(int i = 0; i < nvertices; i++){
-            if(!used[i] && (distances[i] < INF)) n = i;
+            if(!used[i] && (distances[i] < INF) && (distances[i] == mindistance )) n = i;
         }
 
         if(n == -1) break;
@@ -112,10 +121,17 @@ void run(int mazeNumber) {
         cv::waitKey(1);
 
         for(auto edge : edges_by_vertex[n]){
+            if (n == encodeVertex(350, 300, maze.rows, maze.cols)){
+                std::cout << edge.w << " ";
+            }
             if (distances[edge.v] > distances[n] + edge.w){
                 distances[edge.v] = distances[n] + edge.w;
                 father[edge.v] = n;
             }
+        }
+        mindistance = INF;
+        for(int i = 0; i < nvertices; i++){
+            if(!used[i] && (distances[i] < mindistance)) mindistance = distances[i];
         }
     }
 
@@ -127,7 +143,9 @@ void run(int mazeNumber) {
             place = father[place];
         }
         for (int i = path.size()-1; i >= 0; i--) {
-            std::cout << (path[i] + 1) << " ";
+            int row = path[i] / maze.rows;
+            int column = path[i] % maze.cols;
+            window.at<cv::Vec3b>(row, column) = cv::Vec3b(255, 0, 0);
         }
     }
 
@@ -148,7 +166,10 @@ void run(int mazeNumber) {
     while (cv::waitKey(10) != 27) {
         cv::imshow("Maze", window);
     }
+
 }
+
+
 
 int main() {
     try {
