@@ -51,7 +51,7 @@ void run(int mazeNumber) {
 
     std::vector<std::vector<Edge>> edges_by_vertex(nvertices);
     for (int j = 0; j < maze.rows-1; ++j) {
-        for (int i = 0; i < maze.cols-1; ++i) {
+            for (int i = 0; i < maze.cols-1; ++i) {
             cv::Vec3b color = maze.at<cv::Vec3b>(j, i);
             unsigned char blue = color[0];
             unsigned char green = color[1];
