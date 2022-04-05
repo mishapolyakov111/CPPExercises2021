@@ -14,20 +14,16 @@
 #include <libutils/fast_random.h>
 
 
+int estimateQuality(cv::Mat mat, int j, int i, int ny, int nx);
+
 // Эта функция говорит нам правда ли пиксель отмаскирован, т.е. отмечен как "удаленный", т.е. белый
 bool isPixelMasked(cv::Mat mask, int j, int i) {
     rassert(j >= 0 && j < mask.rows, 372489347280017);
     rassert(i >= 0 && i < mask.cols, 372489347280018);
     rassert(mask.type() == CV_8UC3, 2348732984792380019);
-    cv::Vec3b color = mask.at<cv::Vec3b>(j, i);
-    unsigned char blue = color[0];
-    unsigned char green = color[1];
-    unsigned char red = color[2];
-    int w = blue+red+green;
-    if (w == 255*3 ) {
+    if (mask.at<cv::Vec3b>(j, i) == cv::Vec3b(255, 255, 255)) {
         return true;
-    }
-    else{
+    }else{
         return false;
     }
 
@@ -91,31 +87,60 @@ void run(int caseNumber, std::string caseName) {
     // Ориентировочный псевдокод-подсказка получившегося алгоритма:
     cv::Mat shifts(original.rows, original.cols, CV_32SC2, cv::Scalar(0, 0)); // матрица хранящая смещения, изначально заполнена парами нулей
      cv::Mat image = original; // текущая картинка
-     for (int k = 0; k < 100, k++) {
-         for (int j = 0; j < image.rows; ++j) {
-             for (int i = 0; i < image.cols; ++i) {
-                 if (!isPixelMasked(image, j, i)) continue; // пропускаем т.к. его менять не надо
-             cv::Vec2i dxy =shifts.at<cv::Vec2i>(j,i); //смотрим какое сейчас смещение для этого пикселя в матрице смещения
-             int (nx, ny) = (i + dxy.x, j + dxy.y); // ЭТО НЕ КОРРЕКТНЫЙ КОД, но он иллюстрирует как рассчитать координаты пикселя-донора из которого мы хотим брать цвет
-             currentQuality = estimateQuality(image, j, i, ny, nx, 5, 5); // эта функция (создайте ее) считает насколько похож квадрат 5х5 приложенный центром к (i, j)
+     for (int k = 0; k < 1; k++) {
+         for (int j = 2; j < image.rows-3; ++j) {
+             for (int i = 2; i < image.cols-3; ++i) {
+                 if (!isPixelMasked(mask, j, i)) continue; // пропускаем т.к. его менять не надо
+                cv::Vec2i dxy = shifts.at<cv::Vec2i>(j,i); //смотрим какое сейчас смещение для этого пикселя в матрице смещения
+                int nx = i + dxy[1];
+                int ny = j + dxy[0];
+
+             // ЭТО НЕ КОРРЕКТНЫЙ КОД, но он иллюстрирует как рассчитать координаты пикселя-донора из которого мы хотим брать цвет
+                int currentQuality = estimateQuality(image, j, i, ny, nx); // эта функция (создайте ее) считает насколько похож квадрат 5х5 приложенный центром к (i, j)
                                                                                                                             //на квадрат 5х5 приложенный центром к (nx, ny)
 
-             int (rx, ry) = random.... // создаем случайное смещение относительно нашего пикселя, воспользуйтесь функцией random.next(...);
-                                          (окрестность вокруг пикселя на который укажет смещение - не должна выходить за пределы картинки и не должна быть отмаскирована)
-             randomQuality = estimateQuality(image, j, i, j+ry, i+rx, 5, 5); // оцениваем насколько похоже будет если мы приложим эту случайную гипотезу которую только что выбрали
+                bool q = true;
+                int newRandx = 0;
+                int newRandy = 0;
+                while (q){
+                    newRandx = random.next(2, image.cols-3);
+                    newRandy = random.next(2, image.rows-3);
+                    if (!isPixelMasked(image, newRandy, newRandx)){
+                        q = false;
+                    }
+                }
+             //int (rx, ry) = random.... // создаем случайное смещение относительно нашего пикселя, воспользуйтесь функцией random.next(...);
+             //                             (окрестность вокруг пикселя на который укажет смещение - не должна выходить за пределы картинки и не должна быть отмаскирована)
+             int randomQuality = estimateQuality(image, j, i, newRandy, newRandx); // оцениваем насколько похоже будет если мы приложим эту случайную гипотезу которую только что выбрали
 
-             if (если новое качество случайной угадайки оказалось лучше старого) {
-                 то сохраняем (rx,ry) в картинку смещений
-                 и в текущем пикселе кладем цвет из пикселя на которого только что смотрели (цент окрестности по смещению)
-                 (т.е. мы не весь патч сюда кладем, а только его центральный пиксель)
-             } else {
-                 а что делать если новая случайная гипотеза хуже чем то что у нас уже есть?
-             }
-         }
-         не забываем сохранить на диск текущую картинку
-         а как численно оценить насколько уже хорошую картинку мы смогли построить? выведите в консоль это число
+                 if (randomQuality < currentQuality || currentQuality == 0) {
+                     shifts.at<cv::Vec2i>(j,i)[0] = newRandy - j;
+                     shifts.at<cv::Vec2i>(j,i)[1] = newRandx - i;
+                     image.at<cv::Vec3b>(j,i) = image.at<cv::Vec3b>(newRandy,newRandx);
+                 }
+            }
+         //не забываем сохранить на диск текущую картинку
+         //а как численно оценить насколько уже хорошую картинку мы смогли построить? выведите в консоль это число
+        }
      }
+    cv::imwrite(resultsDir + "3mask.png", image);
 }
+
+int estimateQuality(cv::Mat image, int j, int i, int ny, int nx) {
+    int sum0 = 0;
+    int sum1 = 0;
+    int sum2 = 0;
+
+    for (int k = -2; k <3; ++k) {
+        for (int l = -2; l <3; ++l) {
+            sum0 += abs(image.at<cv::Vec3b>(j+k, i+l)[0] - image.at<cv::Vec3b>(ny+k, nx+l)[0]);
+            sum1 += abs(image.at<cv::Vec3b>(j+k, i+l)[1] - image.at<cv::Vec3b>(ny+k, nx+l)[1]);
+            sum2 += abs(image.at<cv::Vec3b>(j+k, i+l)[2] - image.at<cv::Vec3b>(ny+k, nx+l)[2]);
+        }
+    }
+    return (sum0 + sum1 + sum2);
+}
+
 
 
 int main() {
