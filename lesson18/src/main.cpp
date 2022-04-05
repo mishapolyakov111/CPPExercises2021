@@ -87,7 +87,7 @@ void run(int caseNumber, std::string caseName) {
     // Ориентировочный псевдокод-подсказка получившегося алгоритма:
     cv::Mat shifts(original.rows, original.cols, CV_32SC2, cv::Scalar(0, 0)); // матрица хранящая смещения, изначально заполнена парами нулей
      cv::Mat image = original; // текущая картинка
-     for (int k = 0; k < 1; k++) {
+     for (int p = 0; p < 100; p++) {
          for (int j = 2; j < image.rows-3; ++j) {
              for (int i = 2; i < image.cols-3; ++i) {
                  if (!isPixelMasked(mask, j, i)) continue; // пропускаем т.к. его менять не надо
@@ -98,7 +98,6 @@ void run(int caseNumber, std::string caseName) {
              // ЭТО НЕ КОРРЕКТНЫЙ КОД, но он иллюстрирует как рассчитать координаты пикселя-донора из которого мы хотим брать цвет
                 int currentQuality = estimateQuality(image, j, i, ny, nx); // эта функция (создайте ее) считает насколько похож квадрат 5х5 приложенный центром к (i, j)
                                                                                                                             //на квадрат 5х5 приложенный центром к (nx, ny)
-
                 bool q = true;
                 int newRandx = 0;
                 int newRandy = 0;
@@ -111,30 +110,30 @@ void run(int caseNumber, std::string caseName) {
                 }
              int randomQuality = estimateQuality(image, j, i, newRandy, newRandx); // оцениваем насколько похоже будет если мы приложим эту случайную гипотезу которую только что выбрали
 
-                 if (randomQuality < currentQuality || currentQuality == 0) {
-                     shifts.at<cv::Vec2i>(j,i)[0] = newRandy - j;
-                     shifts.at<cv::Vec2i>(j,i)[1] = newRandx - i;
-                     image.at<cv::Vec3b>(j,i) = image.at<cv::Vec3b>(newRandy,newRandx);
-                 }
-            }
+             if (randomQuality < currentQuality || currentQuality == 0) {
+                 shifts.at<cv::Vec2i>(j,i)[0] = newRandy - j;
+                 shifts.at<cv::Vec2i>(j,i)[1] = newRandx - i;
+                 image.at<cv::Vec3b>(j,i) = image.at<cv::Vec3b>(newRandy,newRandx);
+             }
+             }
         }
      }
     cv::imwrite(resultsDir + "3mask.png", image);
 }
 
 int estimateQuality(cv::Mat image, int j, int i, int ny, int nx) {
-    int sum0 = 0;
-    int sum1 = 0;
-    int sum2 = 0;
 
+    int sd0 = 0;
+    int sd1 = 0;
+    int sd2 = 0;
     for (int k = -2; k <3; ++k) {
         for (int l = -2; l <3; ++l) {
-            sum0 += abs(image.at<cv::Vec3b>(j+k, i+l)[0] - image.at<cv::Vec3b>(ny+k, nx+l)[0]);
-            sum1 += abs(image.at<cv::Vec3b>(j+k, i+l)[1] - image.at<cv::Vec3b>(ny+k, nx+l)[1]);
-            sum2 += abs(image.at<cv::Vec3b>(j+k, i+l)[2] - image.at<cv::Vec3b>(ny+k, nx+l)[2]);
+            sd0 += abs(image.at<cv::Vec3b>(j+k, i+l)[0] - image.at<cv::Vec3b>(ny+k, nx+l)[0]);
+            sd1 += abs(image.at<cv::Vec3b>(j+k, i+l)[1] - image.at<cv::Vec3b>(ny+k, nx+l)[1]);
+            sd2 += abs(image.at<cv::Vec3b>(j+k, i+l)[2] - image.at<cv::Vec3b>(ny+k, nx+l)[2]);
         }
     }
-    return (sum0 + sum1 + sum2);
+    return sd0 + sd1 + sd2;
 }
 
 
