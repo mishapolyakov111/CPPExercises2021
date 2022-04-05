@@ -109,8 +109,6 @@ void run(int caseNumber, std::string caseName) {
                         q = false;
                     }
                 }
-             //int (rx, ry) = random.... // создаем случайное смещение относительно нашего пикселя, воспользуйтесь функцией random.next(...);
-             //                             (окрестность вокруг пикселя на который укажет смещение - не должна выходить за пределы картинки и не должна быть отмаскирована)
              int randomQuality = estimateQuality(image, j, i, newRandy, newRandx); // оцениваем насколько похоже будет если мы приложим эту случайную гипотезу которую только что выбрали
 
                  if (randomQuality < currentQuality || currentQuality == 0) {
@@ -119,8 +117,6 @@ void run(int caseNumber, std::string caseName) {
                      image.at<cv::Vec3b>(j,i) = image.at<cv::Vec3b>(newRandy,newRandx);
                  }
             }
-         //не забываем сохранить на диск текущую картинку
-         //а как численно оценить насколько уже хорошую картинку мы смогли построить? выведите в консоль это число
         }
      }
     cv::imwrite(resultsDir + "3mask.png", image);
