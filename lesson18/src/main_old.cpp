@@ -94,8 +94,8 @@ void run(int caseNumber, std::string caseName) {
                    cv::Scalar(0, 0)); // матрица хранящая смещения, изначально заполнена парами нулей
     cv::Mat image = original; // текущая картинка
     for (int p = 0; p < 200; p++) {
-        for (int j = 2; j < image.rows - 3; ++j) {
-            for (int i = 2; i < image.cols - 3; ++i) {
+        for (int j = 0; j < image.rows - 3; ++j) {
+            for (int i = 0; i < image.cols - 3; ++i) {
                 if (!isPixelMasked(mask, j, i)) continue; // пропускаем т.к. его менять не надо
                 cv::Vec2i dxy = shifts.at<cv::Vec2i>(j,
                                                      i); //смотрим какое сейчас смещение для этого пикселя в матрице смещения
