@@ -94,73 +94,51 @@ void run(int caseNumber, std::string caseName) {
     // Ориентировочный псевдокод-подсказка получившегося алгоритма:
     cv::Mat shifts(original.rows, original.cols, CV_32SC2,
                    cv::Scalar(0, 0)); // матрица хранящая смещения, изначально заполнена парами нулей
-    cv::Mat image = original; // текущая картинка
-    for (int p = 0; p < 1000; p++) {
-        for (int j = 0; j < image.rows - 3; ++j) {
-            for (int i = 0; i < image.cols - 3; ++i) {
+    cv::Mat image = original;
+    std::cout << "Image resolution: " << original.cols << "x" << original.rows << std::endl;
+    std::vector<cv::Mat> pyramid; // здесь будем хранить пронумерованные версии картинки разного разрешения
+    // нулевой уровень - самая грубая, последний уровень - самая детальная
+
+    cv::Mat img = original.clone();
+    const int PYRAMID_MIN_SIZE = 20; // до какой поры уменьшать картинку? давайте уменьшать пока картинка больше 20 пикселей
+    while (img.rows > PYRAMID_MIN_SIZE && img.rows > PYRAMID_MIN_SIZE) { // или пока больше (2 * размер окна для оценки качества)
+        pyramid.insert(pyramid.begin(), img); // мы могли бы воспользоваться push_back но мы хотим вставлять картинки в начало вектора
+        cv::pyrDown(img, img); // эта функция уменьшает картинку в два раза
+    }
+    
+    for (int p = 0; p < 100; p++) {
+        for (int j = 0; j < image.rows - 2; ++j) {
+            for (int i = 0; i < image.cols - 2; ++i) {
 
                 if (!isPixelMasked(mask, j, i)) continue; // пропускаем т.к. его менять не надо
-                cv::Vec2i dxy = shifts.at<cv::Vec2i>(j, i); //смотрим какое сейчас смещение для этого пикселя в матрице смещения
+                cv::Vec2i dxy = shifts.at<cv::Vec2i>(j,
+                                                     i); //смотрим какое сейчас смещение для этого пикселя в матрице смещения
                 int nx = i + dxy[1];
                 int ny = j + dxy[0];
                 rassert(i >= 0 && i < image.cols && j >= 0 && j < image.rows, 10);
                 // ЭТО НЕ КОРРЕКТНЫЙ КОД, но он иллюстрирует как рассчитать координаты пикселя-донора из которого мы хотим брать цвет
-                int currentQuality = estimateQuality(image, j, i, ny, nx); // эта функция (создайте ее) считает насколько похож квадрат 5х5 приложенный центром к (i, j)
+                int currentQuality = estimateQuality(image, j, i, ny,
+                                                     nx); // эта функция (создайте ее) считает насколько похож квадрат 5х5 приложенный центром к (i, j)
                 //на квадрат 5х5 приложенный центром к (nx, ny)
                 bool q = true;
                 int newRandx = 0;
                 int newRandy = 0;
                 while (q) {
-                    newRandx = random.next(2, image.cols - 3);
-                    newRandy = random.next(2, image.rows - 3);
+                    newRandx = random.next(2, image.cols - 2);
+                    newRandy = random.next(2, image.rows - 2);
                     if (!isPixelMasked(image, newRandy, newRandx)) {
                         q = false;
                     }
                 }
 
-                int randomQuality = estimateQuality(image, j, i, newRandy, newRandx); // оцениваем насколько похоже будет если мы приложим эту случайную гипотезу которую только что выбрали
+                int randomQuality = estimateQuality(image, j, i, newRandy,
+                                                    newRandx); // оцениваем насколько похоже будет если мы приложим эту случайную гипотезу которую только что выбрали
 
                 if (randomQuality < currentQuality || currentQuality == 0) {
                     shifts.at<cv::Vec2i>(j, i)[0] = newRandy - j;
                     shifts.at<cv::Vec2i>(j, i)[1] = newRandx - i;
                     image.at<cv::Vec3b>(j, i) = image.at<cv::Vec3b>(newRandy, newRandx);
                 }
-            }
-        }
-    }
-    for (int j = 2; j < image.rows - 3; ++j) {
-        for (int i = 2; i < image.cols - 3; ++i) {
-            if (!isPixelMasked(mask, j, i)) continue;
-            int currentQuality = estimateQuality(image, j, i, j+shifts.at<cv::Vec2i>(j, i)[0], i+shifts.at<cv::Vec2i>(j, i)[1]);
-            int qualityUp = estimateQuality(image, j, i, j+shifts.at<cv::Vec2i>(j-1, i)[0], i+shifts.at<cv::Vec2i>(j-1, i)[1]);
-            int qualityLeft = estimateQuality(image, j, i, j+shifts.at<cv::Vec2i>(j, i-1)[0], i+shifts.at<cv::Vec2i>(j, i-1)[1]);
-            if (qualityLeft < currentQuality){
-                currentQuality = qualityLeft;
-                shifts.at<cv::Vec2i>(j, i) = shifts.at<cv::Vec2i>(j, i-1);
-                image.at<cv::Vec3b>(j, i) = image.at<cv::Vec3b>(j + shifts.at<cv::Vec2i>(j, i)[0], i + shifts.at<cv::Vec2i>(j, i)[1]);
-            }
-            if (qualityUp < currentQuality){
-                currentQuality  = qualityUp;
-                shifts.at<cv::Vec2i>(j, i) = shifts.at<cv::Vec2i>(j-1, i);
-                image.at<cv::Vec3b>(j, i) = image.at<cv::Vec3b>(j + shifts.at<cv::Vec2i>(j, i)[0], i + shifts.at<cv::Vec2i>(j, i)[1]);
-            }
-        }
-    }
-    for (int j = image.rows-2; j > 0; --j) {
-        for (int i = image.cols - 2; i > 0; --i) {
-            if (!isPixelMasked(mask, j, i)) continue;
-            int currentQuality = estimateQuality(image, j, i, j+shifts.at<cv::Vec2i>(j, i)[0], i+shifts.at<cv::Vec2i>(j, i)[1]);
-            int qualityDown = estimateQuality(image, j, i, j+shifts.at<cv::Vec2i>(j+1, i)[0], i+shifts.at<cv::Vec2i>(j+1, i)[1]);
-            int qualityRight = estimateQuality(image, j, i, j+shifts.at<cv::Vec2i>(j, i+1)[0], i+shifts.at<cv::Vec2i>(j, i+1)[1]);
-            if (qualityRight < currentQuality){
-                currentQuality = qualityRight;
-                shifts.at<cv::Vec2i>(j, i) = shifts.at<cv::Vec2i>(j, i-1);
-                image.at<cv::Vec3b>(j, i) = image.at<cv::Vec3b>(j + shifts.at<cv::Vec2i>(j, i)[0], i + shifts.at<cv::Vec2i>(j, i)[1]);
-            }
-            if (qualityDown < currentQuality){
-                currentQuality  = qualityDown;
-                shifts.at<cv::Vec2i>(j, i) = shifts.at<cv::Vec2i>(j-1, i);
-                image.at<cv::Vec3b>(j, i) = image.at<cv::Vec3b>(j + shifts.at<cv::Vec2i>(j, i)[0], i + shifts.at<cv::Vec2i>(j, i)[1]);
             }
         }
     }
