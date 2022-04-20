@@ -94,55 +94,83 @@ void run(int caseNumber, std::string caseName) {
     // Ориентировочный псевдокод-подсказка получившегося алгоритма:
     cv::Mat shifts(original.rows, original.cols, CV_32SC2,
                    cv::Scalar(0, 0)); // матрица хранящая смещения, изначально заполнена парами нулей
-    cv::Mat image = original;
+
     std::cout << "Image resolution: " << original.cols << "x" << original.rows << std::endl;
     std::vector<cv::Mat> pyramid; // здесь будем хранить пронумерованные версии картинки разного разрешения
     // нулевой уровень - самая грубая, последний уровень - самая детальная
 
     cv::Mat img = original.clone();
     const int PYRAMID_MIN_SIZE = 20; // до какой поры уменьшать картинку? давайте уменьшать пока картинка больше 20 пикселей
-    while (img.rows > PYRAMID_MIN_SIZE && img.rows > PYRAMID_MIN_SIZE) { // или пока больше (2 * размер окна для оценки качества)
-        pyramid.insert(pyramid.begin(), img); // мы могли бы воспользоваться push_back но мы хотим вставлять картинки в начало вектора
+    while (img.rows > PYRAMID_MIN_SIZE &&
+           img.cols > PYRAMID_MIN_SIZE) { // или пока больше (2 * размер окна для оценки качества)
+        pyramid.insert(pyramid.begin(),
+                       img); // мы могли бы воспользоваться push_back но мы хотим вставлять картинки в начало вектора
         cv::pyrDown(img, img); // эта функция уменьшает картинку в два раза
     }
-    
-    for (int p = 0; p < 100; p++) {
-        for (int j = 0; j < image.rows - 2; ++j) {
-            for (int i = 0; i < image.cols - 2; ++i) {
 
-                if (!isPixelMasked(mask, j, i)) continue; // пропускаем т.к. его менять не надо
-                cv::Vec2i dxy = shifts.at<cv::Vec2i>(j,
-                                                     i); //смотрим какое сейчас смещение для этого пикселя в матрице смещения
-                int nx = i + dxy[1];
-                int ny = j + dxy[0];
-                rassert(i >= 0 && i < image.cols && j >= 0 && j < image.rows, 10);
-                // ЭТО НЕ КОРРЕКТНЫЙ КОД, но он иллюстрирует как рассчитать координаты пикселя-донора из которого мы хотим брать цвет
-                int currentQuality = estimateQuality(image, j, i, ny,
-                                                     nx); // эта функция (создайте ее) считает насколько похож квадрат 5х5 приложенный центром к (i, j)
-                //на квадрат 5х5 приложенный центром к (nx, ny)
-                bool q = true;
-                int newRandx = 0;
-                int newRandy = 0;
-                while (q) {
-                    newRandx = random.next(2, image.cols - 2);
-                    newRandy = random.next(2, image.rows - 2);
-                    if (!isPixelMasked(image, newRandy, newRandx)) {
-                        q = false;
+    std::vector<cv::Mat> pyramidMask;
+    cv::Mat maskPopa = mask.clone();
+    while (maskPopa.rows > PYRAMID_MIN_SIZE && maskPopa.cols > PYRAMID_MIN_SIZE) {
+        pyramid.insert(pyramid.begin(), maskPopa);
+        cv::pyrDown(maskPopa, maskPopa);
+    }
+
+    std::vector<cv::Mat> pyramidShifts;
+    cv::Mat shiftsPopa = shifts.clone();
+    while (shiftsPopa.rows > PYRAMID_MIN_SIZE && shiftsPopa.cols > PYRAMID_MIN_SIZE) {
+        pyramid.insert(pyramid.begin(), shiftsPopa);
+        cv::pyrDown(shiftsPopa, shiftsPopa);
+    }
+
+    for (int l = 0; l < pyramid.size(); l++) {
+        cv::Mat image = pyramid[l];
+        cv::Mat mask1 = pyramidMask[l];
+        cv::Mat shifts1 = pyramidShifts[l];
+        for (int p = 0; p < 100; p++) {
+            for (int j = 0; j < image.rows - 2; ++j) {
+                for (int i = 0; i < image.cols - 2; ++i) {
+
+                    if (!isPixelMasked(mask1, j, i)) continue; // пропускаем т.к. его менять не надо
+                    cv::Vec2i dxy = shifts1.at<cv::Vec2i>(j, i); //смотрим какое сейчас смещение для этого пикселя в матрице смещения
+                    int nx = i + dxy[1];
+                    int ny = j + dxy[0];
+                    rassert(i >= 0 && i < image.cols && j >= 0 && j < image.rows, 10);
+                    // ЭТО НЕ КОРРЕКТНЫЙ КОД, но он иллюстрирует как рассчитать координаты пикселя-донора из которого мы хотим брать цвет
+                    int currentQuality = estimateQuality(image, j, i, ny,
+                                                         nx); // эта функция (создайте ее) считает насколько похож квадрат 5х5 приложенный центром к (i, j)
+                    //на квадрат 5х5 приложенный центром к (nx, ny)
+                    bool q = true;
+                    int newRandx = 0;
+                    int newRandy = 0;
+                    while (q) {
+                        newRandx = random.next(2, image.cols - 2);
+                        newRandy = random.next(2, image.rows - 2);
+                        if (!isPixelMasked(image, newRandy, newRandx)) {
+                            q = false;
+                        }
                     }
-                }
 
-                int randomQuality = estimateQuality(image, j, i, newRandy,
-                                                    newRandx); // оцениваем насколько похоже будет если мы приложим эту случайную гипотезу которую только что выбрали
+                    int randomQuality = estimateQuality(image, j, i, newRandy,
+                                                        newRandx); // оцениваем насколько похоже будет если мы приложим эту случайную гипотезу которую только что выбрали
 
-                if (randomQuality < currentQuality || currentQuality == 0) {
-                    shifts.at<cv::Vec2i>(j, i)[0] = newRandy - j;
-                    shifts.at<cv::Vec2i>(j, i)[1] = newRandx - i;
-                    image.at<cv::Vec3b>(j, i) = image.at<cv::Vec3b>(newRandy, newRandx);
+                    if (randomQuality < currentQuality || currentQuality == 0) {
+                        shifts1.at<cv::Vec2i>(j, i)[0] = newRandy - j;
+                        shifts1.at<cv::Vec2i>(j, i)[1] = newRandx - i;
+                        image.at<cv::Vec3b>(j, i) = image.at<cv::Vec3b>(newRandy, newRandx);
+                    }
                 }
             }
         }
+        if (!(l == pyramid.size()-1)){
+            for (int i = 0; i < pyramidShifts[l].rows-1; ++i) {
+                for (int j = 0; j < pyramidShifts[l].cols-1; ++j) {
+                    //pyramidShifts[l+1].at<cv::Vec2i>(j, i)[0];
+
+                }
+            }
+        }
+        cv::imwrite(resultsDir + "3mask.png", image);
     }
-    cv::imwrite(resultsDir + "3mask.png", image);
 }
 
 
@@ -152,13 +180,13 @@ int estimateQuality(cv::Mat image, int j, int i, int ny, int nx) {
     int sd2 = 0;
     for (int k = -2; k < 3; ++k) {
         for (int l = -2; l < 3; ++l) {
-            //rassert(i + l >= 0 && i + l < image.cols && j + k >= 0 && j +k < image.rows, 11);
+            if (i + l < 0 && i + l >= image.cols && j + k < 0 && j + k >= image.rows) return 10000000;
             if (nx + l >= 0 && nx + l < image.cols && ny + k >= 0 && ny + k < image.rows) {
-                //rassert(nx + l >= 0 && nx + l < image.cols && ny + k >= 0 && ny + k < image.rows, 12);
+                rassert(nx + l >= 0 && nx + l < image.cols && ny + k >= 0 && ny + k < image.rows, 12);
                 sd0 += abs(image.at<cv::Vec3b>(j + k, i + l)[0] - image.at<cv::Vec3b>(ny + k, nx + l)[0]);
                 sd1 += abs(image.at<cv::Vec3b>(j + k, i + l)[1] - image.at<cv::Vec3b>(ny + k, nx + l)[1]);
                 sd2 += abs(image.at<cv::Vec3b>(j + k, i + l)[2] - image.at<cv::Vec3b>(ny + k, nx + l)[2]);
-            }else{
+            } else {
                 return 100000000;
             }
         }
